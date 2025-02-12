@@ -6,6 +6,7 @@ pipeline {
   environment {
     SONARQUBE_SERVER = 'SonarQubeServer'
     HOME = "${WORKSPACE}"
+    SONAR_USER_HOME = "${WORKSPACE}/.sonar"  // Explicit cache directory
   }
   stages {
     stage('Checkout') {
@@ -13,24 +14,31 @@ pipeline {
         git branch: 'release', url: 'https://github.com/DevSecOps-Stack/maven-unit-and-integration-tests.git'
       }
     }
+
     stage('Build & Test') {
       steps {
         sh 'mvn clean install -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
       }
     }
-stage('SonarQube Analysis') {
-  steps {
-    withSonarQubeEnv(SONARQUBE_SERVER) {
-      sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} ' +
-         '-Dsonar.working.directory=${WORKSPACE} ' +
-         '-Dmaven.repo.local=${WORKSPACE}/.m2/repository ' +
-         '-Dsonar.exclusions=**/*.tf,**/*.tfvars,**/*.tfstate ' +
-         '-Dsonar.iac.terraform.enabled=false ' +   // Disable Terraform analysis
-         '-Dsonar.iac.enabled=false ' +            // Disable entire IaC analysis
-         '-Dsonar.sensors=-IaC-TerraformSensor'    // Block sensor explicitly
+
+    stage('SonarQube Analysis') {
+      steps {
+        withSonarQubeEnv(SONARQUBE_SERVER) {
+          sh '''
+            mkdir -p ${WORKSPACE}/.sonar/cache  // Force create cache directory
+            mvn sonar:sonar \
+              -Duser.home=${WORKSPACE} \
+              -Dsonar.working.directory=${WORKSPACE} \
+              -Dsonar.userHome=${WORKSPACE}/.sonar \
+              -Dmaven.repo.local=${WORKSPACE}/.m2/repository \
+              -Dsonar.exclusions=**/*.tf,**/*.tfvars,**/*.tfstate \
+              -Dsonar.iac.terraform.enabled=false \
+              -Dsonar.iac.enabled=false
+          '''
+        }
+      }
     }
-  }
-}
+
     stage('Wait for Quality Gate') {
       steps {
         timeout(time: 5, unit: 'MINUTES') {
@@ -38,6 +46,7 @@ stage('SonarQube Analysis') {
         }
       }
     }
+
     stage('Deploy to Artifactory') {
       steps {
         rtMavenRun(
