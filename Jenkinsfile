@@ -1,24 +1,25 @@
 pipeline {
   agent any
+  // This tools block tells Jenkins to add Maven to the PATH.
+  tools {
+    maven 'Maven-builder'
+  }
   environment {
     // The name must match the one configured in Jenkins for SonarQube.
     SONARQUBE_SERVER = 'SonarQubeServer'
-    // Maven settings can be passed through if you have configured a Managed File.
-    // For example: MAVEN_SETTINGS = credentials('MAVEN_SETTINGS_ID')
+    // Additional environment variables (like credentials for Maven settings) can be added here.
   }
   stages {
     stage('Checkout') {
       steps {
         // Checkout the code from the release branch.
-        // If using a multibranch pipeline, Jenkins will already check out the correct branch.
-        // Otherwise, specify the branch:
+        // For a multibranch pipeline, this may already be done.
         git branch: 'release', url: 'https://github.com/DevSecOps-Stack/maven-unit-and-integration-tests.git'
       }
     }
     stage('Build & Test') {
       steps {
-        // Run Maven to compile, run unit tests, and run integration tests.
-        // Adjust the Maven goals if necessary.
+        // Run Maven build. With the tools directive, 'mvn' is available on the PATH.
         sh 'mvn clean install'
       }
     }
@@ -32,8 +33,7 @@ pipeline {
     }
     stage('Wait for Quality Gate') {
       steps {
-        // Wait for SonarQube Quality Gate result.
-        // If the Quality Gate fails, the pipeline will abort.
+        // Wait for the SonarQube Quality Gate result. Abort if it fails.
         timeout(time: 5, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
@@ -41,8 +41,8 @@ pipeline {
     }
     stage('Deploy to Artifactory') {
       steps {
-        // Use the Artifactory plugin’s step to run Maven with deployment.
-        // Ensure that the resolver and deployer IDs match your global Jenkins configuration.
+        // Use the Artifactory plugin’s rtMavenRun step to deploy artifacts.
+        // Make sure the resolverId and deployerId match your global configuration.
         rtMavenRun(
           pom: 'pom.xml',
           goals: 'clean install deploy',
