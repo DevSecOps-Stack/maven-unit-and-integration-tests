@@ -27,7 +27,8 @@ pipeline {
         // Use withSonarQubeEnv to configure SonarQube settings.
         withSonarQubeEnv(SONARQUBE_SERVER) {
           // Override user.home to force the Sonar Scanner to use a writable directory.
-          sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
+          // This forces the report to be generated in the workspace root.
+           sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} -Dsonar.working.directory=${WORKSPACE} -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
         }
       }
     }
