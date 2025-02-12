@@ -2,7 +2,7 @@ pipeline {
   agent any
   // This tools block tells Jenkins to add Maven to the PATH.
   tools {
-    maven 'Maven-builder'
+    maven 'maven-builder'
   }
   environment {
     // The name must match the one configured in Jenkins for SonarQube.
