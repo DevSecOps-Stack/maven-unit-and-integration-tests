@@ -1,11 +1,13 @@
 pipeline {
   agent any
   tools {
-    maven 'maven-builder'
+    maven 'Maven-3.6.3'
   }
   environment {
     // The name must match the one configured in Jenkins for SonarQube.
     SONARQUBE_SERVER = 'SonarQubeServer'
+    // Set HOME to the workspace so that SonarQube can create its cache there.
+    HOME = "${WORKSPACE}"
   }
   stages {
     stage('Checkout') {
@@ -16,14 +18,16 @@ pipeline {
     }
     stage('Build & Test') {
       steps {
-        // Use a custom Maven local repository within the workspace.
+        // Use a custom local repository inside the workspace.
         sh 'mvn clean install -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
       }
     }
     stage('SonarQube Analysis') {
       steps {
+        // Use withSonarQubeEnv to configure SonarQube settings.
         withSonarQubeEnv(SONARQUBE_SERVER) {
-          sh 'mvn sonar:sonar -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
+          // Override user.home to force the Sonar Scanner to use a writable directory.
+          sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
         }
       }
     }
@@ -36,6 +40,7 @@ pipeline {
     }
     stage('Deploy to Artifactory') {
       steps {
+        // Use the Artifactory plugin’s rtMavenRun step to deploy the artifact.
         rtMavenRun(
           pom: 'pom.xml',
           goals: 'clean install deploy -Dmaven.repo.local=${WORKSPACE}/.m2/repository',
