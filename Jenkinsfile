@@ -4,7 +4,9 @@ pipeline {
     maven 'maven-builder'
   }
   environment {
-    SONARQUBE_SERVER = 'SonarQubeServer'  // Must match Jenkins config name
+    SONARQUBE_SERVER = 'SonarQubeServer'  // Must match Jenkins' configured server name
+    SONAR_HOST_URL = 'http://sonar-route-sonar.apps.openshift-cluster.softekh.com'  // Explicit URL
+    SONAR_AUTH_TOKEN = credentials('sonar-auth-token-id')  // Jenkins credential ID for SonarQube token
     HOME = "${WORKSPACE}"
     SONAR_USER_HOME = "${WORKSPACE}/.sonar"
   }
@@ -61,10 +63,10 @@ pipeline {
   }
   post {
     success {
-      echo 'Build succeeded!'
+      echo 'Build, tests, and SonarQube analysis succeeded!'
     }
     failure {
-      echo 'Pipeline failed. Check logs.'
+      echo 'Pipeline failed. Check logs for details.'
     }
   }
 }
