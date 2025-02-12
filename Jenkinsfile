@@ -12,7 +12,7 @@ pipeline {
         // Checkout the code from the release branch.
         // If using a multibranch pipeline, Jenkins will already check out the correct branch.
         // Otherwise, specify the branch:
-        git branch: 'release', url: 'https://github.com/your-org/your-maven-project.git'
+        git branch: 'release', url: 'https://github.com/DevSecOps-Stack/maven-unit-and-integration-tests.git'
       }
     }
     stage('Build & Test') {
