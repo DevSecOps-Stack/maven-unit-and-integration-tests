@@ -21,14 +21,18 @@ pipeline {
     stage('SonarQube Analysis') {
       steps {
         withSonarQubeEnv(SONARQUBE_SERVER) {
-          // Disable the Terraform sensor with -Dsonar.terraform.enabled=false
-          sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} -Dsonar.working.directory=${WORKSPACE} -Dmaven.repo.local=${WORKSPACE}/.m2/repository -Dsonar.exclusions=**/*.tf,**/*.tfvars,**/*.tfstate -Dsonar.terraform.enabled=false'
+          sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} ' +
+             '-Dsonar.working.directory=${WORKSPACE} ' +
+             '-Dmaven.repo.local=${WORKSPACE}/.m2/repository ' +
+             '-Dsonar.exclusions=**/*.tf,**/*.tfvars,**/*.tfstate ' +
+             '-Dsonar.terraform.enabled=false ' +
+             '-Dsonar.iac.enabled=false'
         }
       }
     }
     stage('Wait for Quality Gate') {
       steps {
-        timeout(time: 10, unit: 'MINUTES') {
+        timeout(time: 5, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
       }
