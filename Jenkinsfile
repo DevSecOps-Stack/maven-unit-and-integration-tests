@@ -1,7 +1,7 @@
 pipeline {
   agent any
   tools {
-    maven 'Maven-3.6.3'
+    maven 'maven-builder'
   }
   environment {
     // The name must match the one configured in Jenkins for SonarQube.
