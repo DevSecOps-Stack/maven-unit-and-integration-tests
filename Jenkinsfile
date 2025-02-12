@@ -4,44 +4,33 @@ pipeline {
     maven 'maven-builder'
   }
   environment {
-    SONARQUBE_SERVER = 'SonarQubeServer'  // Must match Jenkins' configured server name
-    SONAR_HOST_URL = 'http://sonar-route-sonar.apps.openshift-cluster.softekh.com'  // Explicit URL
-    SONAR_AUTH_TOKEN = credentials('sonar-auth-token-id')  // Jenkins credential ID for SonarQube token
+    // The name must match the one configured in Jenkins for SonarQube.
+    SONARQUBE_SERVER = 'SonarQubeServer'
+    // Set HOME to the workspace so that SonarQube can create its cache there.
     HOME = "${WORKSPACE}"
-    SONAR_USER_HOME = "${WORKSPACE}/.sonar"
   }
   stages {
     stage('Checkout') {
       steps {
+        // Checkout the code from the release branch.
         git branch: 'release', url: 'https://github.com/DevSecOps-Stack/maven-unit-and-integration-tests.git'
       }
     }
-
     stage('Build & Test') {
       steps {
+        // Use a custom local repository inside the workspace.
         sh 'mvn clean install -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
       }
     }
-
     stage('SonarQube Analysis') {
       steps {
+        // Use withSonarQubeEnv to configure SonarQube settings.
         withSonarQubeEnv(SONARQUBE_SERVER) {
-          sh '''
-            mkdir -p ${WORKSPACE}/.sonar/cache
-            mvn sonar:sonar \
-              -Dsonar.host.url=${SONAR_HOST_URL} \
-              -Dsonar.login=${SONAR_AUTH_TOKEN} \
-              -Dsonar.working.directory=${WORKSPACE} \
-              -Dsonar.userHome=${WORKSPACE}/.sonar \
-              -Dmaven.repo.local=${WORKSPACE}/.m2/repository \
-              -Dsonar.exclusions=**/*.tf,**/*.tfvars,**/*.tfstate \
-              -Dsonar.iac.terraform.enabled=false \
-              -Dsonar.iac.enabled=false
-          '''
+          // Override user.home to force the Sonar Scanner to use a writable directory.
+          sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
         }
       }
     }
-
     stage('Wait for Quality Gate') {
       steps {
         timeout(time: 5, unit: 'MINUTES') {
@@ -49,9 +38,9 @@ pipeline {
         }
       }
     }
-
     stage('Deploy to Artifactory') {
       steps {
+        // Use the Artifactory plugin’s rtMavenRun step to deploy the artifact.
         rtMavenRun(
           pom: 'pom.xml',
           goals: 'clean install deploy -Dmaven.repo.local=${WORKSPACE}/.m2/repository',
@@ -63,10 +52,10 @@ pipeline {
   }
   post {
     success {
-      echo 'Build, tests, and SonarQube analysis succeeded!'
+      echo 'Build, tests, SonarQube analysis, and deployment succeeded!'
     }
     failure {
-      echo 'Pipeline failed. Check logs for details.'
+      echo 'One or more steps failed. Check the logs for details.'
     }
   }
 }
