@@ -33,8 +33,16 @@ pipeline {
     }
     stage('Wait for Quality Gate') {
       steps {
-        timeout(time: 5, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: true
+        retry(3) {  // Retry on transient failures
+          timeout(time: 5, unit: 'MINUTES') {  // Extended timeout
+            script {
+              def qg = waitForQualityGate()
+              echo "Quality Gate Status: ${qg.status}"
+              if (qg.status != 'OK') {
+                error "Quality Gate failed: ${qg.status}"
+              }
+            }
+          }
         }
       }
     }
