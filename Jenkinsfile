@@ -4,9 +4,9 @@ pipeline {
     maven 'maven-builder'
   }
   environment {
-    SONARQUBE_SERVER = 'SonarQubeServer'
+    SONARQUBE_SERVER = 'SonarQubeServer'  // Must match Jenkins config name
     HOME = "${WORKSPACE}"
-    SONAR_USER_HOME = "${WORKSPACE}/.sonar"  // Explicit cache directory
+    SONAR_USER_HOME = "${WORKSPACE}/.sonar"
   }
   stages {
     stage('Checkout') {
@@ -25,9 +25,10 @@ pipeline {
       steps {
         withSonarQubeEnv(SONARQUBE_SERVER) {
           sh '''
-            mkdir -p ${WORKSPACE}/.sonar/cache  // Force create cache directory
+            mkdir -p ${WORKSPACE}/.sonar/cache
             mvn sonar:sonar \
-              -Duser.home=${WORKSPACE} \
+              -Dsonar.host.url=${SONAR_HOST_URL} \
+              -Dsonar.login=${SONAR_AUTH_TOKEN} \
               -Dsonar.working.directory=${WORKSPACE} \
               -Dsonar.userHome=${WORKSPACE}/.sonar \
               -Dmaven.repo.local=${WORKSPACE}/.m2/repository \
@@ -60,10 +61,10 @@ pipeline {
   }
   post {
     success {
-      echo 'Build, tests, SonarQube analysis, and deployment succeeded!'
+      echo 'Build succeeded!'
     }
     failure {
-      echo 'One or more steps failed. Check the logs for details.'
+      echo 'Pipeline failed. Check logs.'
     }
   }
 }
