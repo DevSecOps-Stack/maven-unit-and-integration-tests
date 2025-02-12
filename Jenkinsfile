@@ -18,18 +18,18 @@ pipeline {
         sh 'mvn clean install -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
       }
     }
-    stage('SonarQube Analysis') {
-      steps {
-        withSonarQubeEnv(SONARQUBE_SERVER) {
-          sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} ' +
-             '-Dsonar.working.directory=${WORKSPACE} ' +
-             '-Dmaven.repo.local=${WORKSPACE}/.m2/repository ' +
-             '-Dsonar.exclusions=**/*.tf,**/*.tfvars,**/*.tfstate ' +
-             '-Dsonar.terraform.enabled=false ' +
-             '-Dsonar.iac.enabled=false'
-        }
+  stage('SonarQube Analysis') {
+  steps {
+    withSonarQubeEnv(SONARQUBE_SERVER) {
+      sh 'mvn sonar:sonar -Duser.home=${WORKSPACE} ' +
+         '-Dsonar.working.directory=${WORKSPACE} ' +
+         '-Dmaven.repo.local=${WORKSPACE}/.m2/repository ' +
+         '-Dsonar.exclusions=**/*.tf,**/*.tfvars,**/*.tfstate ' +
+         '-Dsonar.iac.terraform.enabled=false ' +
+         '-Dsonar.sensors=-Terraform'
       }
-    }
+    } 
+  }
     stage('Wait for Quality Gate') {
       steps {
         timeout(time: 5, unit: 'MINUTES') {
